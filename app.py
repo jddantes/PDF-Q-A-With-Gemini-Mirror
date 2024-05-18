@@ -9,6 +9,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 
@@ -56,7 +57,7 @@ def get_conversational_chain():
 def user_input(user_question):
     embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
     
-    new_db = FAISS.load_local("faiss_index", embeddings)
+    new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
     docs = new_db.similarity_search(user_question)
 
     chain = get_conversational_chain()
@@ -71,8 +72,7 @@ def user_input(user_question):
 
 
 
-
-def main():
+async def main():
     st.set_page_config("Chat PDF")
     st.header("Chat with PDF using Gemini💁")
 
@@ -87,11 +87,13 @@ def main():
         if st.button("Submit & Process"):
             with st.spinner("Processing..."):
                 raw_text = get_pdf_text(pdf_docs)
-                text_chunks = get_text_chunks(raw_text)
+                text_chunks = get_text_chunks(raw_text)[:100]
+                print(f'Raw text chunks {type(text_chunks)} {len(text_chunks)} {text_chunks}')
+
                 get_vector_store(text_chunks)
                 st.success("Done")
 
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
